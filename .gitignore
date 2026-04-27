@@ -1,0 +1,37 @@
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+/.idea/
+.DS_Store
+build/
+/captures
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google credentials – NEVER commit
+app/src/main/assets/service_account.json
+app/google-services.json
+**/google-services.json
+**/service_account*.json
+
+# Room schema exports (kept in VCS for migration auditing)
+# app/schemas/
+
+# Test reports
+app/build/reports/
+
+# Kotlin / IDE
+*.class
+out/
+
+# macOS
+**/.DS_Store

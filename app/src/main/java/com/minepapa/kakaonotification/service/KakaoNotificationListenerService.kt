@@ -63,7 +63,7 @@ class KakaoNotificationListenerService : NotificationListenerService() {
                 NotificationLog(
                     sender         = sender,
                     body           = body,
-                    matchedKeyword = matchResult.matchedKeyword,
+                    matchedKeywords = matchResult.matchedKeywords,
                 )
             ).getOrNull() ?: return@launch
 

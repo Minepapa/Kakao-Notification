@@ -9,27 +9,28 @@ data class NotificationLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sender: String,
     val body: String,
-    val matchedKeyword: String?,
+    val matchedKeywords: String,  // 쉼표 구분 저장, 없으면 빈 문자열
     val receivedAt: Long,
     val syncedAt: Long?,
 ) {
     fun toDomain() = NotificationLog(
-        id             = id,
-        sender         = sender,
-        body           = body,
-        matchedKeyword = matchedKeyword,
-        receivedAt     = receivedAt,
-        syncedAt       = syncedAt,
+        id              = id,
+        sender          = sender,
+        body            = body,
+        matchedKeywords = if (matchedKeywords.isBlank()) emptyList()
+                          else matchedKeywords.split(","),
+        receivedAt      = receivedAt,
+        syncedAt        = syncedAt,
     )
 
     companion object {
         fun fromDomain(log: NotificationLog) = NotificationLogEntity(
-            id             = log.id,
-            sender         = log.sender,
-            body           = log.body,
-            matchedKeyword = log.matchedKeyword,
-            receivedAt     = log.receivedAt,
-            syncedAt       = log.syncedAt,
+            id              = log.id,
+            sender          = log.sender,
+            body            = log.body,
+            matchedKeywords = log.matchedKeywords.joinToString(","),
+            receivedAt      = log.receivedAt,
+            syncedAt        = log.syncedAt,
         )
     }
 }

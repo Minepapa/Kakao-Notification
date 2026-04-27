@@ -7,7 +7,7 @@ import javax.inject.Inject
 
 data class MatchResult(
     val rule: FilterRule,
-    val matchedKeyword: String?,
+    val matchedKeywords: List<String>,
 )
 
 class MatchNotificationUseCase @Inject constructor(
@@ -21,13 +21,13 @@ class MatchNotificationUseCase @Inject constructor(
             if (!senderMatch) continue
 
             if (rule.keywords.isEmpty()) {
-                return MatchResult(rule, matchedKeyword = null)
+                return MatchResult(rule, matchedKeywords = emptyList())
             }
-            val keyword = rule.keywords.firstOrNull { kw ->
+            val matched = rule.keywords.filter { kw ->
                 body.contains(kw, ignoreCase = true)
             }
-            if (keyword != null) {
-                return MatchResult(rule, matchedKeyword = keyword)
+            if (matched.isNotEmpty()) {
+                return MatchResult(rule, matchedKeywords = matched)
             }
         }
         return null

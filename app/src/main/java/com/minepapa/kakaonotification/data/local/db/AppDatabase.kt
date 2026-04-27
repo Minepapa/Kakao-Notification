@@ -9,7 +9,7 @@ import com.minepapa.kakaonotification.data.local.db.entity.NotificationLogEntity
 
 @Database(
     entities = [FilterRuleEntity::class, NotificationLogEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {

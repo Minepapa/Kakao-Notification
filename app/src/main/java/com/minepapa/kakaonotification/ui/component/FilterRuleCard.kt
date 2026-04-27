@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,14 +28,11 @@ fun FilterRuleCard(
     onEdit:   () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        onClick  = onEdit,
-    ) {
+    Card(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier             = Modifier.padding(16.dp),
+            modifier              = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment    = Alignment.CenterVertically,
+            verticalAlignment     = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -52,6 +50,9 @@ fun FilterRuleCard(
                 checked         = rule.isEnabled,
                 onCheckedChange = onToggle,
             )
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "수정")
+            }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "삭제")
             }

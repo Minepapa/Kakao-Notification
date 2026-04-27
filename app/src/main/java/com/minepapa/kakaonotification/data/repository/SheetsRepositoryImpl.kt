@@ -25,7 +25,7 @@ class SheetsRepositoryImpl @Inject constructor(
                 dateFormat.format(Date(log.receivedAt)),
                 log.sender,
                 log.body,
-                log.matchedRuleId?.toString() ?: "",
+                log.matchedKeyword ?: "",
             )
         }
         api.appendValues(

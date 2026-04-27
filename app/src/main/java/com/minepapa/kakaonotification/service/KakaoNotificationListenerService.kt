@@ -56,14 +56,14 @@ class KakaoNotificationListenerService : NotificationListenerService() {
                 ?: extras.getCharSequence(Notification.EXTRA_TEXT))
                 ?.toString() ?: return@launch
 
-            val matchedRule = entryPoint.matchNotificationUseCase()(sender, body)
+            val matchResult = entryPoint.matchNotificationUseCase()(sender, body)
                 ?: return@launch
 
             val logId = entryPoint.saveNotificationLogUseCase()(
                 NotificationLog(
-                    sender = sender,
-                    body = body,
-                    matchedRuleId = matchedRule.id,
+                    sender         = sender,
+                    body           = body,
+                    matchedKeyword = matchResult.matchedKeyword,
                 )
             ).getOrNull() ?: return@launch
 

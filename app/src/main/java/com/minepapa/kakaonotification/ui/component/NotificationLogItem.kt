@@ -27,7 +27,15 @@ fun NotificationLogItem(
                     text  = log.sender,
                     style = MaterialTheme.typography.titleSmall,
                 )
-                Spacer(Modifier.width(8.dp))
+                if (log.matchedKeyword != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text  = "# ${log.matchedKeyword}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
                 Text(
                     text  = if (log.syncedAt != null) "동기화됨" else "대기중",
                     style = MaterialTheme.typography.labelSmall,

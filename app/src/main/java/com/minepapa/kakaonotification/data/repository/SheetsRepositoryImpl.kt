@@ -20,12 +20,13 @@ class SheetsRepositoryImpl @Inject constructor(
         sheetName: String,
         logs: List<NotificationLog>,
     ): Result<Unit> = runCatching {
+        // 컬럼 순서: 시간 | 발신인 | 키워드 | 내용
         val rows = logs.map { log ->
             listOf(
                 dateFormat.format(Date(log.receivedAt)),
                 log.sender,
-                log.body,
                 log.matchedKeywords.joinToString(", "),
+                log.body,
             )
         }
         api.appendValues(

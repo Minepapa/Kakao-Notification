@@ -15,6 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.minepapa.kakaonotification.R
 import com.minepapa.kakaonotification.core.util.parseKeywords
+import com.minepapa.kakaonotification.core.util.toKeywordsString
 import com.minepapa.kakaonotification.domain.model.FilterRule
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,8 +36,18 @@ fun AddEditRuleScreen(
     onBack: () -> Unit,
     viewModel: FilterRulesViewModel = hiltViewModel(),
 ) {
-    var senderName by rememberSaveable { mutableStateOf("") }
+    var senderName   by rememberSaveable { mutableStateOf("") }
     var keywordsText by rememberSaveable { mutableStateOf("") }
+
+    // 수정 모드: 기존 규칙 값을 불러와 필드에 채운다
+    LaunchedEffect(ruleId) {
+        if (ruleId != null) {
+            viewModel.getRuleById(ruleId)?.let { rule ->
+                senderName   = rule.senderName
+                keywordsText = rule.keywords.toKeywordsString()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -71,6 +83,7 @@ fun AddEditRuleScreen(
                 onClick = {
                     viewModel.addRule(
                         FilterRule(
+                            id         = ruleId ?: 0L,  // 0이면 신규, 기존 id면 덮어쓰기(REPLACE)
                             senderName = senderName.trim(),
                             keywords   = keywordsText.parseKeywords(),
                         )

@@ -28,6 +28,8 @@ class FilterRulesViewModel @Inject constructor(
         viewModelScope.launch { addFilterRuleUseCase(rule) }
     }
 
+    suspend fun getRuleById(id: Long): FilterRule? = filterRuleRepository.getById(id)
+
     fun deleteRule(id: Long) {
         viewModelScope.launch { deleteFilterRuleUseCase(id) }
     }

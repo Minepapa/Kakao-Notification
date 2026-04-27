@@ -14,12 +14,13 @@ import com.minepapa.kakaonotification.ui.screen.settings.SettingsScreen
 @Composable
 fun AppNavHost(
     navController: NavHostController,
+    onGoogleSignIn: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
-        navController = navController,
+        navController  = navController,
         startDestination = Screen.Dashboard.route,
-        modifier = modifier,
+        modifier       = modifier,
     ) {
         composable(Screen.Dashboard.route) {
             DashboardScreen(
@@ -51,7 +52,10 @@ fun AppNavHost(
             NotificationLogScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.Settings.route) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onGoogleSignIn = onGoogleSignIn,
+                onBack         = { navController.popBackStack() },
+            )
         }
     }
 }

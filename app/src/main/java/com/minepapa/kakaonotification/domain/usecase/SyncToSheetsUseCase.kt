@@ -13,8 +13,7 @@ class SyncToSheetsUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(): Result<Unit> = runCatching {
         val spreadsheetId = prefs.spreadsheetId.first()
-            ?: error("스프레드시트 ID가 설정되지 않았습니다.")
-        val sheetName = prefs.sheetName.first()
+        val sheetName     = prefs.sheetName.first()
 
         val unsynced = notificationLogRepo.getUnsynced().first()
         if (unsynced.isEmpty()) return@runCatching

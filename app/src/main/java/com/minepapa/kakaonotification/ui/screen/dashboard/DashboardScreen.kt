@@ -10,11 +10,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.minepapa.kakaonotification.R
 import com.minepapa.kakaonotification.ui.component.PermissionBanner
@@ -26,13 +30,20 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    val ruleCount    by viewModel.ruleCount.collectAsStateWithLifecycle()
-    val isSignedIn   by viewModel.isSignedIn.collectAsStateWithLifecycle()
+    val ruleCount  by viewModel.ruleCount.collectAsStateWithLifecycle()
+    val isSignedIn by viewModel.isSignedIn.collectAsStateWithLifecycle()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshSignInState()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.app_name)) })
-        }
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -52,7 +63,10 @@ fun DashboardScreen(
             Text(
                 text  = if (isSignedIn) "Google 계정 연결됨" else "Google 계정 미연결 — 설정에서 연결해주세요",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isSignedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                color = if (isSignedIn)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.error,
             )
         }
     }

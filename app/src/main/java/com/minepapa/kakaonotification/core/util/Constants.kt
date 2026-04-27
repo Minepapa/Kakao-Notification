@@ -8,6 +8,6 @@ object Constants {
 
     // 기존 포트폴리오 스프레드시트 (banana-portfolio 프로젝트와 동일)
     const val DEFAULT_SPREADSHEET_ID = "1ANhZyJUm51T8HfvQ56sK-Xrli9IViKmKG462l9rLKeg"
-    // 카카오 알림 전용 탭 이름 (스프레드시트에서 미리 생성 필요)
-    const val DEFAULT_SHEET_NAME     = "카카오알림"
+    // 카카오 알림 전용 탭 이름 — 스프레드시트에 "Notification" 탭 생성 완료
+    const val DEFAULT_SHEET_NAME     = "Notification"
 }

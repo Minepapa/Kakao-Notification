@@ -51,28 +51,44 @@ class KakaoNotificationListenerService : NotificationListenerService() {
             if (!entryPoint.appPreferences().listenerEnabled.first()) return@launch
 
             val extras = sbn.notification.extras
-            val sender = extras.getString(Notification.EXTRA_TITLE) ?: return@launch
-            val body = (extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
-                ?: extras.getCharSequence(Notification.EXTRA_TEXT))
-                ?.toString() ?: return@launch
-
-            val matchResult = entryPoint.matchNotificationUseCase()(sender, body)
+            val sender = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
                 ?: return@launch
 
-            val logId = entryPoint.saveNotificationLogUseCase()(
-                NotificationLog(
-                    sender         = sender,
-                    body           = body,
-                    matchedKeywords = matchResult.matchedKeywords,
-                )
-            ).getOrNull() ?: return@launch
+            val bodies = extractBodies(extras)
+            if (bodies.isEmpty()) return@launch
 
-            // 즉시 동기화 시도, 실패 시 WorkManager로 재시도
-            val syncResult = entryPoint.syncToSheetsUseCase()()
-            if (syncResult.isFailure) {
-                enqueueSyncWorker(entryPoint.workManager())
+            var anyLogged = false
+            for (body in bodies) {
+                val matchResult = entryPoint.matchNotificationUseCase()(sender, body) ?: continue
+                entryPoint.saveNotificationLogUseCase()(
+                    NotificationLog(
+                        sender          = sender,
+                        body            = body,
+                        matchedKeywords = matchResult.matchedKeywords,
+                    )
+                ).getOrNull() ?: continue
+                anyLogged = true
             }
+
+            if (anyLogged) enqueueSyncWorker(entryPoint.workManager())
         }
+    }
+
+    private fun extractBodies(extras: android.os.Bundle): List<String> {
+        // BigTextStyle — 단일 메시지 (가장 일반적인 경우)
+        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
+        if (!bigText.isNullOrBlank()) return listOf(bigText)
+
+        // InboxStyle — 동시에 여러 메시지가 도착했을 때 KakaoTalk이 묶어서 전달
+        val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+        if (!textLines.isNullOrEmpty()) {
+            val lines = textLines.mapNotNull { it?.toString()?.takeIf { t -> t.isNotBlank() } }
+            if (lines.isNotEmpty()) return lines
+        }
+
+        // Fallback: EXTRA_TEXT (단순 텍스트 알림)
+        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+        return if (!text.isNullOrBlank()) listOf(text) else emptyList()
     }
 
     override fun onDestroy() {

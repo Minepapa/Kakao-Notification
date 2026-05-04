@@ -21,4 +21,7 @@ interface NotificationLogDao {
 
     @Query("UPDATE notification_logs SET syncedAt = :syncedAt WHERE id IN (:ids)")
     suspend fun markSynced(ids: List<Long>, syncedAt: Long)
+
+    @Query("DELETE FROM notification_logs WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
 }

@@ -122,6 +122,22 @@ fun SettingsScreen(
                 Text(stringResource(R.string.settings_sync_now))
             }
 
+            OutlinedButton(
+                onClick  = viewModel::syncExecutionHistory,
+                modifier = Modifier.fillMaxWidth(),
+                enabled  = isSignedIn,
+            ) {
+                Text(stringResource(R.string.settings_sync_execution_history))
+            }
+
+            OutlinedButton(
+                onClick  = viewModel::syncDividend,
+                modifier = Modifier.fillMaxWidth(),
+                enabled  = isSignedIn,
+            ) {
+                Text("배당금 재동기화")
+            }
+
             if (syncStatus != null) {
                 Text(
                     text  = syncStatus!!,

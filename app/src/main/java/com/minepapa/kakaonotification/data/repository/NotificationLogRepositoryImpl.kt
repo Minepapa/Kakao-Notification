@@ -23,4 +23,7 @@ class NotificationLogRepositoryImpl @Inject constructor(
 
     override suspend fun markSynced(ids: List<Long>, syncedAt: Long) =
         dao.markSynced(ids, syncedAt)
+
+    override suspend fun deleteLogs(ids: List<Long>) =
+        dao.deleteByIds(ids)
 }

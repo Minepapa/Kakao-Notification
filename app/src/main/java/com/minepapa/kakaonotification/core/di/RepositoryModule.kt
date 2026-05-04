@@ -1,8 +1,12 @@
 package com.minepapa.kakaonotification.core.di
 
+import com.minepapa.kakaonotification.data.repository.DividendRepositoryImpl
+import com.minepapa.kakaonotification.data.repository.ExecutionHistoryRepositoryImpl
 import com.minepapa.kakaonotification.data.repository.FilterRuleRepositoryImpl
 import com.minepapa.kakaonotification.data.repository.NotificationLogRepositoryImpl
 import com.minepapa.kakaonotification.data.repository.SheetsRepositoryImpl
+import com.minepapa.kakaonotification.domain.repository.DividendRepository
+import com.minepapa.kakaonotification.domain.repository.ExecutionHistoryRepository
 import com.minepapa.kakaonotification.domain.repository.FilterRuleRepository
 import com.minepapa.kakaonotification.domain.repository.NotificationLogRepository
 import com.minepapa.kakaonotification.domain.repository.SheetsRepository
@@ -27,4 +31,13 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSheetsRepository(impl: SheetsRepositoryImpl): SheetsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindExecutionHistoryRepository(impl: ExecutionHistoryRepositoryImpl): ExecutionHistoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDividendRepository(impl: DividendRepositoryImpl): DividendRepository
+
 }

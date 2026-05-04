@@ -8,4 +8,5 @@ interface NotificationLogRepository {
     fun getUnsynced(): Flow<List<NotificationLog>>
     suspend fun insert(log: NotificationLog): Long
     suspend fun markSynced(ids: List<Long>, syncedAt: Long)
+    suspend fun deleteLogs(ids: List<Long>)
 }

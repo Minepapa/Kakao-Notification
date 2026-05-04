@@ -32,6 +32,7 @@ class SheetsRepositoryImpl @Inject constructor(
         api.appendValues(
             spreadsheetId = spreadsheetId,
             range = sheetName,
+            valueInputOption = "RAW",
             body = AppendRequest(values = rows),
         )
     }

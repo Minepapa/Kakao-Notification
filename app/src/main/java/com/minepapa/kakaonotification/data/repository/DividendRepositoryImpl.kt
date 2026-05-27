@@ -3,6 +3,7 @@ package com.minepapa.kakaonotification.data.repository
 import com.minepapa.kakaonotification.data.remote.sheets.GoogleSheetsApi
 import com.minepapa.kakaonotification.data.remote.sheets.model.AppendRequest
 import com.minepapa.kakaonotification.domain.model.DividendRecord
+import com.minepapa.kakaonotification.domain.model.DividendSheetEntry
 import com.minepapa.kakaonotification.domain.repository.DividendRepository
 import java.net.URLEncoder
 import javax.inject.Inject
@@ -17,24 +18,30 @@ class DividendRepositoryImpl @Inject constructor(
     ): Result<Unit> = runCatching {
         val existing = getExistingEntries(spreadsheetId)
 
-        // (date, stockName)별로 묶어서 처리
+        // 같은 날짜의 모든 processedKeys를 모아서 증권사별 종목명 차이에 의한 중복 방지
+        val allKeysByDate = mutableMapOf<String, MutableSet<String>>()
+        existing.forEach { (key, entry) ->
+            allKeysByDate.getOrPut(key.first) { mutableSetOf() }.addAll(entry.processedKeys)
+        }
+
         val grouped = records.groupBy { Pair(it.date, it.stockName) }
 
         grouped.forEach { (key, newRecords) ->
             val entry = existing[key]
-            if (entry != null) {
-                // 시/분/초가 다른 것만 신규 → 기존 항목에 누적
-                val novelRecords = newRecords.filter { it.receivedTime !in entry.processedTimes }
-                if (novelRecords.isEmpty()) return@forEach
+            val dateKeys = allKeysByDate.getOrPut(key.first) { mutableSetOf() }
 
+            val novelRecords = newRecords.filter { it.uniqueKey !in dateKeys }
+            if (novelRecords.isEmpty()) return@forEach
+
+            if (entry != null) {
                 val newTotal = entry.currentAmount + novelRecords.sumOf { it.afterTaxAmount }
-                val newTimes = (entry.processedTimes + novelRecords.map { it.receivedTime })
+                val newKeys = (entry.processedKeys + novelRecords.map { it.uniqueKey })
                     .joinToString(",")
 
                 val encodedAmount = URLEncoder.encode(
                     "'$DIVIDEND_SHEET_NAME'!B${entry.rowNumber}", "UTF-8"
                 )
-                val encodedTimes = URLEncoder.encode(
+                val encodedKeys = URLEncoder.encode(
                     "'$DIVIDEND_SHEET_NAME'!D${entry.rowNumber}", "UTF-8"
                 )
                 api.updateValues(
@@ -45,24 +52,25 @@ class DividendRepositoryImpl @Inject constructor(
                 )
                 api.updateValues(
                     spreadsheetId = spreadsheetId,
-                    range = encodedTimes,
+                    range = encodedKeys,
                     valueInputOption = "USER_ENTERED",
-                    body = AppendRequest(listOf(listOf(newTimes))),
+                    body = AppendRequest(listOf(listOf(newKeys))),
                 )
             } else {
-                // 완전히 새로운 (date, stockName) — 배치 내 시각별 중복 제거 후 합산
-                val distinct = newRecords.distinctBy { it.receivedTime }
+                val distinct = novelRecords.distinctBy { it.uniqueKey }
                 val totalAmount = distinct.sumOf { it.afterTaxAmount }
-                val times = distinct.map { it.receivedTime }.joinToString(",")
+                val keys = distinct.map { it.uniqueKey }.joinToString(",")
                 api.appendValues(
                     spreadsheetId = spreadsheetId,
                     range = DIVIDEND_SHEET_NAME,
                     valueInputOption = "USER_ENTERED",
                     body = AppendRequest(
-                        listOf(listOf(key.first, totalAmount.toString(), key.second, times))
+                        listOf(listOf(key.first, totalAmount.toString(), key.second, keys))
                     ),
                 )
             }
+
+            dateKeys.addAll(novelRecords.map { it.uniqueKey })
         }
     }
 
@@ -83,7 +91,7 @@ class DividendRepositoryImpl @Inject constructor(
                     val amount = row.getOrNull(1)
                         ?.replace(Regex("[^0-9]"), "")
                         ?.toLongOrNull() ?: 0L
-                    val processedTimes = row.getOrNull(3)
+                    val processedKeys = row.getOrNull(3)
                         ?.split(",")
                         ?.map { it.trim() }
                         ?.filter { it.isNotBlank() }
@@ -93,7 +101,7 @@ class DividendRepositoryImpl @Inject constructor(
                     Pair(date, name) to ExistingEntry(
                         rowNumber = sheetRow,
                         currentAmount = amount,
-                        processedTimes = processedTimes,
+                        processedKeys = processedKeys,
                     )
                 }
                 .toMap()
@@ -103,8 +111,43 @@ class DividendRepositoryImpl @Inject constructor(
     private data class ExistingEntry(
         val rowNumber: Int,
         val currentAmount: Long,
-        val processedTimes: Set<String>,
+        val processedKeys: Set<String>,
     )
+
+    override suspend fun getDividends(
+        spreadsheetId: String
+    ): Result<List<DividendSheetEntry>> = runCatching {
+        val response = api.getValues(spreadsheetId, "'$DIVIDEND_SHEET_NAME'!A:D")
+        val rows = response.values ?: return@runCatching emptyList()
+        rows.drop(1).mapIndexedNotNull { index, row ->
+            val date = row.getOrNull(0)?.trim() ?: return@mapIndexedNotNull null
+            val amount = row.getOrNull(1)
+                ?.replace(Regex("[^0-9]"), "")
+                ?.toLongOrNull() ?: 0L
+            val name = row.getOrNull(2)?.trim() ?: return@mapIndexedNotNull null
+            if (date.isBlank() || name.isBlank()) return@mapIndexedNotNull null
+            DividendSheetEntry(
+                rowNumber = index + 2,
+                date = date,
+                amount = amount,
+                stockName = name,
+            )
+        }
+    }
+
+    override suspend fun updateStockName(
+        spreadsheetId: String,
+        rowNumber: Int,
+        newName: String
+    ): Result<Unit> = runCatching {
+        val range = URLEncoder.encode("'$DIVIDEND_SHEET_NAME'!C$rowNumber", "UTF-8")
+        api.updateValues(
+            spreadsheetId = spreadsheetId,
+            range = range,
+            valueInputOption = "USER_ENTERED",
+            body = AppendRequest(listOf(listOf(newName))),
+        )
+    }
 
     companion object {
         private const val DIVIDEND_SHEET_NAME = "배당금"

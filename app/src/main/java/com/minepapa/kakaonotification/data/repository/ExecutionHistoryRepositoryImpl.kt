@@ -186,16 +186,24 @@ class ExecutionHistoryRepositoryImpl @Inject constructor(
             val response = api.getValues(spreadsheetId, "'$EXECUTION_HISTORY_SHEET_NAME'!A:H")
             response.values
                 ?.mapNotNull { row ->
-                    val date      = row.getOrElse(0) { "" }
-                    val tradeType = row.getOrElse(1) { "" }
-                    val stockName = row.getOrElse(5) { "" }
-                    val quantity  = row.getOrElse(7) { "" }
+                    val date      = normalizeDate(row.getOrElse(0) { "" })
+                    val tradeType = row.getOrElse(1) { "" }.trim()
+                    val stockName = row.getOrElse(5) { "" }.trim()
+                    val quantity  = row.getOrElse(7) { "" }.trim().replace(Regex("\\.0*$"), "")
                     if (date.isBlank() || stockName.isBlank()) null
                     else "$date|$tradeType|$stockName|$quantity"
                 }
                 ?.toSet()
                 ?: emptySet()
         }.getOrDefault(emptySet())
+    }
+
+    // Google Sheets가 "9:20:42" (leading zero 생략)로 반환할 수 있으므로
+    // SimpleDateFormat으로 재파싱하여 앱의 compositeKey와 형식을 일치시킴
+    private fun normalizeDate(raw: String): String {
+        return runCatching {
+            dateFormat.format(dateFormat.parse(raw.trim())!!)
+        }.getOrDefault(raw.trim())
     }
 
     private fun compositeKey(log: ExecutionHistory): String =

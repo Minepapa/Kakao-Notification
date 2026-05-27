@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.minepapa.kakaonotification.ui.screen.dashboard.DashboardScreen
+import com.minepapa.kakaonotification.ui.screen.dividend.DividendListScreen
 import com.minepapa.kakaonotification.ui.screen.log.NotificationLogScreen
 import com.minepapa.kakaonotification.ui.screen.rules.AddEditRuleScreen
 import com.minepapa.kakaonotification.ui.screen.rules.FilterRulesScreen
@@ -53,9 +54,13 @@ fun AppNavHost(
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onGoogleSignIn = onGoogleSignIn,
-                onBack         = { navController.popBackStack() },
+                onGoogleSignIn          = onGoogleSignIn,
+                onBack                  = { navController.popBackStack() },
+                onNavigateToDividendList = { navController.navigate(Screen.DividendList.route) },
             )
+        }
+        composable(Screen.DividendList.route) {
+            DividendListScreen(onBack = { navController.popBackStack() })
         }
     }
 }

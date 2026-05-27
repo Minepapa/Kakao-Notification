@@ -37,6 +37,7 @@ import com.minepapa.kakaonotification.R
 fun SettingsScreen(
     onGoogleSignIn: () -> Unit,
     onBack: () -> Unit,
+    onNavigateToDividendList: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val spreadsheetId by viewModel.spreadsheetId.collectAsStateWithLifecycle()
@@ -136,6 +137,14 @@ fun SettingsScreen(
                 enabled  = isSignedIn,
             ) {
                 Text("배당금 재동기화")
+            }
+
+            OutlinedButton(
+                onClick  = onNavigateToDividendList,
+                modifier = Modifier.fillMaxWidth(),
+                enabled  = isSignedIn,
+            ) {
+                Text("배당금 내역 관리")
             }
 
             if (syncStatus != null) {

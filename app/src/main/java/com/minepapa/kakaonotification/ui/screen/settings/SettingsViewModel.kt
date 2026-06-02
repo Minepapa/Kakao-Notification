@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.minepapa.kakaonotification.data.local.preferences.AppPreferences
 import com.minepapa.kakaonotification.data.remote.auth.GoogleOAuthProvider
-import com.minepapa.kakaonotification.domain.usecase.SyncDividendUseCase
-import com.minepapa.kakaonotification.domain.usecase.SyncExecutionHistoryUseCase
 import com.minepapa.kakaonotification.domain.usecase.SyncToSheetsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -24,8 +22,6 @@ class SettingsViewModel @Inject constructor(
     private val prefs: AppPreferences,
     private val oauthProvider: GoogleOAuthProvider,
     private val syncToSheetsUseCase: SyncToSheetsUseCase,
-    private val syncExecutionHistoryUseCase: SyncExecutionHistoryUseCase,
-    private val syncDividendUseCase: SyncDividendUseCase,
 ) : ViewModel() {
 
     val spreadsheetId = prefs.spreadsheetId
@@ -56,42 +52,6 @@ class SettingsViewModel @Inject constructor(
     fun signOut() {
         oauthProvider.signOut()
         _isSignedIn.value = false
-    }
-
-    fun syncExecutionHistory() {
-        viewModelScope.launch {
-            _syncStatus.value = "체결내역 동기화 중..."
-            syncExecutionHistoryUseCase().fold(
-                onSuccess = {
-                    _syncStatus.value = "체결내역 동기화 완료"
-                    delay(2000)
-                    _syncStatus.value = null
-                },
-                onFailure = {
-                    _syncStatus.value = "오류: ${it.message}"
-                    delay(5000)
-                    _syncStatus.value = null
-                }
-            )
-        }
-    }
-
-    fun syncDividend() {
-        viewModelScope.launch {
-            _syncStatus.value = "배당금 동기화 중..."
-            syncDividendUseCase().fold(
-                onSuccess = {
-                    _syncStatus.value = "배당금 동기화 완료"
-                    delay(2000)
-                    _syncStatus.value = null
-                },
-                onFailure = {
-                    _syncStatus.value = "오류: ${it.message}"
-                    delay(5000)
-                    _syncStatus.value = null
-                }
-            )
-        }
     }
 
     fun syncNow() {

@@ -43,7 +43,7 @@
             </intent-filter>
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="카카오톡 알림을 필터링하여 Google Sheets에 저장합니다" />
+                android:value="카카오톡 알림을 필터링하여 Firestore에 저장합니다" />
         </service>
 
         <!-- WorkManager + Hilt 통합을 위해 auto-init 비활성화 후 수동 초기화 -->

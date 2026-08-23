@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -88,19 +89,19 @@ dependencies {
     // WorkManager
     implementation(libs.work.runtime.ktx)
 
-    // Networking
-    implementation(platform(libs.okhttp.bom))
-    implementation(libs.bundles.okhttp)
-    implementation(libs.bundles.retrofit)
-    implementation(libs.moshi.kotlin)
-    ksp(libs.moshi.kotlin.codegen)
+    // Firebase(Firestore·Auth) — 2026-08-22, 구글시트 릴레이를 대체(Retrofit/OkHttp/Moshi는
+    // 그 릴레이 전용이었어서 함께 제거했다 — data/remote/sheets/* 삭제 참고)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 
-    // Google OAuth (Sheets)
+    // Google Sign-In (Firebase Auth ID 토큰 교환용)
     implementation(libs.play.services.auth)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     // Tests
     testImplementation(libs.bundles.test.unit)

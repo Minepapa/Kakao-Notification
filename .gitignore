@@ -35,3 +35,6 @@ out/
 
 # macOS
 **/.DS_Store
+
+# oh-my-claudecode 세션 상태(에이전트 도구, 앱 소스 아님)
+.omc/

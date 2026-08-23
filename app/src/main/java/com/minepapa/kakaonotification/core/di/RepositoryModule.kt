@@ -1,11 +1,11 @@
 package com.minepapa.kakaonotification.core.di
 
 import com.minepapa.kakaonotification.data.repository.FilterRuleRepositoryImpl
+import com.minepapa.kakaonotification.data.repository.FirestoreRelayRepositoryImpl
 import com.minepapa.kakaonotification.data.repository.NotificationLogRepositoryImpl
-import com.minepapa.kakaonotification.data.repository.SheetsRepositoryImpl
 import com.minepapa.kakaonotification.domain.repository.FilterRuleRepository
 import com.minepapa.kakaonotification.domain.repository.NotificationLogRepository
-import com.minepapa.kakaonotification.domain.repository.SheetsRepository
+import com.minepapa.kakaonotification.domain.repository.NotificationRelayRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -26,6 +26,6 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindSheetsRepository(impl: SheetsRepositoryImpl): SheetsRepository
+    abstract fun bindNotificationRelayRepository(impl: FirestoreRelayRepositoryImpl): NotificationRelayRepository
 
 }

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.minepapa.kakaonotification.core.util.NotificationPermissionHelper
-import com.minepapa.kakaonotification.data.remote.auth.GoogleOAuthProvider
+import com.minepapa.kakaonotification.data.remote.auth.FirebaseAuthProvider
 import com.minepapa.kakaonotification.domain.usecase.GetFilterRulesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,7 +19,7 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     getFilterRulesUseCase: GetFilterRulesUseCase,
-    private val oauthProvider: GoogleOAuthProvider,
+    private val authProvider: FirebaseAuthProvider,
 ) : ViewModel() {
 
     val hasPermission: Boolean
@@ -29,11 +29,11 @@ class DashboardViewModel @Inject constructor(
         .map { it.size }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    private val _isSignedIn = MutableStateFlow(oauthProvider.isSignedIn())
+    private val _isSignedIn = MutableStateFlow(authProvider.isSignedIn())
     val isSignedIn = _isSignedIn.asStateFlow()
 
     fun refreshSignInState() {
-        _isSignedIn.value = oauthProvider.isSignedIn()
+        _isSignedIn.value = authProvider.isSignedIn()
     }
 
     fun openPermissionSettings() {

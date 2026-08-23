@@ -16,14 +16,13 @@ domain/          ← 순수 Kotlin. Android 의존 없음.
 
 data/
   local/db/      ← Room: AppDatabase (v1), FilterRuleDao, NotificationLogDao
-  local/prefs/   ← DataStore: spreadsheetId, sheetName, oauth token
-  remote/sheets/ ← Retrofit + OkHttp: GoogleSheetsApi, SheetsAuthInterceptor
-  remote/auth/   ← GoogleOAuthProvider (Google Sign-In → Sheets scope)
+  local/prefs/   ← DataStore: listenerEnabled
+  remote/auth/   ← FirebaseAuthProvider (Google Sign-In → Firebase Auth ID 토큰)
   repository/    ← *Impl. Hilt @Binds 연결은 core/di/RepositoryModule.kt
 
 service/
   KakaoNotificationListenerService  ← onNotificationPosted() 진입점
-  SheetsSyncWorker                  ← WorkManager CoroutineWorker (재시도)
+  FirestoreSyncWorker                ← WorkManager CoroutineWorker (재시도)
 
 ui/              ← Compose MVVM
   theme/         ← Material3 Color/Type/Theme
@@ -31,10 +30,17 @@ ui/              ← Compose MVVM
   component/     ← 공유 Composable (stateless)
 
 core/
-  di/            ← AppModule, DatabaseModule, NetworkModule, RepositoryModule
+  di/            ← AppModule, DatabaseModule, FirebaseModule, RepositoryModule
   util/          ← Constants, Extensions, NotificationPermissionHelper
   navigation/    ← AppNavHost, Screen
 ```
+
+> ⚠️ **2026-08-22 — 구글시트 릴레이를 Firestore로 교체(banana-portfolio-v2 ADR 0014
+> 참고)**. 원래(`remote/sheets/` + `GoogleOAuthProvider` + `SheetsSyncWorker`)는
+> 구글시트 "알람" 탭에 원문을 append하는 구조였다. Mac 쪽(banana-portfolio-v2)이 이제
+> Firestore `kakaoInbox` 컬렉션을 직접 읽도록 바뀌면서, 이 앱도 Firestore에 직접
+> 쓰도록 재작성됐다 — Retrofit/OkHttp/Moshi(Sheets REST 호출 전용이었음)와
+> `data/remote/sheets/*` 전체가 제거됐다. 아래 표·패턴 설명은 새 구조 기준.
 
 ---
 
@@ -44,11 +50,11 @@ core/
 |------|---------------|
 | 알림 감지/필터링 | `service/KakaoNotificationListenerService.kt` |
 | 매칭 로직 | `domain/usecase/MatchNotificationUseCase.kt` |
-| Sheets 동기화 | `service/SheetsSyncWorker.kt` → `domain/usecase/SyncToSheetsUseCase.kt` |
+| Firestore 동기화 | `service/FirestoreSyncWorker.kt` → `domain/usecase/SyncToFirestoreUseCase.kt` |
 | 필터 규칙 UI | `ui/screen/rules/FilterRulesViewModel.kt` |
-| DI 연결 | `core/di/RepositoryModule.kt` → `NetworkModule.kt` |
+| DI 연결 | `core/di/RepositoryModule.kt` → `FirebaseModule.kt` |
 | DB 스키마 | `data/local/db/AppDatabase.kt` |
-| Sheets 인증 | `data/remote/auth/GoogleOAuthProvider.kt` |
+| Firebase 인증 | `data/remote/auth/FirebaseAuthProvider.kt` |
 | 네비게이션 | `core/navigation/AppNavHost.kt` |
 | 사용자 설정 | `data/local/preferences/AppPreferences.kt` |
 
@@ -87,8 +93,8 @@ EXTRA_BIG_TEXT ?: EXTRA_TEXT                  // 메시지 본문
 ```
 
 ### WorkManager 트리거
-알림 매칭 → Room 저장 → `SyncToSheetsUseCase` 즉시 호출.
-네트워크 실패 시 `SheetsSyncWorker` 예약 (네트워크 제약 + 지수 백오프).
+알림 매칭 → Room 저장 → `SyncToFirestoreUseCase` 즉시 호출.
+네트워크 실패 시 `FirestoreSyncWorker` 예약 (네트워크 제약 + 지수 백오프).
 
 ---
 
@@ -111,9 +117,9 @@ EXTRA_BIG_TEXT ?: EXTRA_TEXT                  // 메시지 본문
 | 카카오톡 패키지 | `com.kakao.talk` |
 | Room DB 이름 | `kakao_notification_db` |
 | Room 버전 | 1 (마이그레이션은 AppDatabase.kt) |
-| WorkManager 태그 | `sheets_sync_worker` |
-| Sheets API 기본 URL | `https://sheets.googleapis.com/v4/` |
-| DataStore 키 | `SPREADSHEET_ID`, `SHEET_NAME`, `OAUTH_TOKEN` |
+| WorkManager 태그 | `firestore_sync_worker` |
+| Firestore 컬렉션 | `kakaoInbox` (banana-portfolio-v2의 `scripts/lib/kakao-inbox.mjs`가 읽음) |
+| DataStore 키 | `LISTENER_ENABLED` |
 | 알림 extras 키 | `EXTRA_TITLE` (발신자), `EXTRA_BIG_TEXT`, `EXTRA_TEXT` |
 
 ### 매칭 알고리즘 (MatchNotificationUseCase)
@@ -121,19 +127,19 @@ EXTRA_BIG_TEXT ?: EXTRA_TEXT                  // 메시지 본문
 - `keywordMatch`: `rule.keywords.isEmpty()` OR 본문에 키워드 하나라도 포함 (대소문자 무시)
 - 두 조건 AND
 
-### Sheets API 호출
+### Firestore 문서 스키마 (kakaoInbox)
 ```
-POST https://sheets.googleapis.com/v4/spreadsheets/{id}/values/{sheetName}:append
-     ?valueInputOption=USER_ENTERED
-Body: { "values": [["timestamp", "sender", "body", "ruleId"]] }
+{ ts: "YYYY-MM-DD HH:mm:ss"(KST), sender, body, createdAt: serverTimestamp() }
 ```
+쓰기 권한은 Firestore 보안규칙에서 본인 Google 계정(이메일)으로만 제한(create 전용,
+read/update/delete는 항상 거부 — Mac 쪽 Admin SDK만 전체 읽기/삭제 가능).
 
 ---
 
 ## 세션 시작 체크리스트
 
 1. 이 파일 읽기 — 완료
-2. `core/di/RepositoryModule.kt`, `NetworkModule.kt` 읽기 (의존성 파악)
+2. `core/di/RepositoryModule.kt`, `FirebaseModule.kt` 읽기 (의존성 파악)
 3. 작업 유형에 맞는 진입점 파일 읽기 (위 표 참고)
 4. `git log --oneline -10` 확인
 5. `ui/theme/`, `res/`, `gradle/wrapper/` 읽지 않기 (작업과 무관한 경우)

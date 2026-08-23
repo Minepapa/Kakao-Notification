@@ -2,12 +2,9 @@ package com.minepapa.kakaonotification.core.util
 
 object Constants {
     const val KAKAO_PACKAGE_NAME   = "com.kakao.talk"
-    const val SYNC_WORKER_TAG      = "sheets_sync_worker"
-    const val SHEETS_BASE_URL      = "https://sheets.googleapis.com/"
-    const val SHEETS_SCOPE         = "https://www.googleapis.com/auth/spreadsheets"
+    const val SYNC_WORKER_TAG      = "firestore_sync_worker"
 
-    // 기존 포트폴리오 스프레드시트 (banana-portfolio 프로젝트와 동일)
-    const val DEFAULT_SPREADSHEET_ID = "1ANhZyJUm51T8HfvQ56sK-Xrli9IViKmKG462l9rLKeg"
-    // 카카오 알림 전용 탭 이름 — 스프레드시트에 "Notification" 탭 생성 완료
-    const val DEFAULT_SHEET_NAME     = "Notification"
+    // banana-portfolio-v2가 읽는 Firestore 컬렉션 — 2026-08-22, 구글시트 "알람" 탭
+    // 릴레이(ADR 0005)를 대체(ADR 0014). scripts/lib/kakao-inbox.mjs와 이름을 맞춘다.
+    const val FIRESTORE_COLLECTION = "kakaoInbox"
 }

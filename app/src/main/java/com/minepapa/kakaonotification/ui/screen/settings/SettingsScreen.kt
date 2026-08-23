@@ -12,16 +12,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -39,8 +35,6 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val spreadsheetId by viewModel.spreadsheetId.collectAsStateWithLifecycle()
-    val sheetName     by viewModel.sheetName.collectAsStateWithLifecycle()
     val isSignedIn    by viewModel.isSignedIn.collectAsStateWithLifecycle()
     val syncStatus    by viewModel.syncStatus.collectAsStateWithLifecycle()
 
@@ -53,9 +47,6 @@ fun SettingsScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-
-    var spreadsheetIdInput by rememberSaveable(spreadsheetId) { mutableStateOf(spreadsheetId) }
-    var sheetNameInput     by rememberSaveable(sheetName)     { mutableStateOf(sheetName) }
 
     Scaffold(
         topBar = {
@@ -75,7 +66,7 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Google 계정 연결
+            // Google 계정 연결(Firebase Auth — Firestore kakaoInbox 쓰기 권한에 필요)
             if (isSignedIn) {
                 OutlinedButton(
                     onClick  = viewModel::signOut,
@@ -91,28 +82,6 @@ fun SettingsScreen(
                     Text(stringResource(R.string.settings_google_signin))
                 }
             }
-
-            OutlinedTextField(
-                value         = spreadsheetIdInput,
-                onValueChange = {
-                    spreadsheetIdInput = it
-                    viewModel.setSpreadsheetId(it)
-                },
-                label        = { Text(stringResource(R.string.settings_spreadsheet_id)) },
-                modifier     = Modifier.fillMaxWidth(),
-                singleLine   = true,
-            )
-
-            OutlinedTextField(
-                value         = sheetNameInput,
-                onValueChange = {
-                    sheetNameInput = it
-                    viewModel.setSheetName(it)
-                },
-                label      = { Text(stringResource(R.string.settings_sheet_name)) },
-                modifier   = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
 
             Button(
                 onClick  = viewModel::syncNow,

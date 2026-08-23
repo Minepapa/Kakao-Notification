@@ -13,7 +13,7 @@ import com.minepapa.kakaonotification.data.local.preferences.AppPreferences
 import com.minepapa.kakaonotification.domain.model.NotificationLog
 import com.minepapa.kakaonotification.domain.usecase.MatchNotificationUseCase
 import com.minepapa.kakaonotification.domain.usecase.SaveNotificationLogUseCase
-import com.minepapa.kakaonotification.domain.usecase.SyncToSheetsUseCase
+import com.minepapa.kakaonotification.domain.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.EntryPoint
@@ -33,7 +33,7 @@ class KakaoNotificationListenerService : NotificationListenerService() {
     interface NlsEntryPoint {
         fun matchNotificationUseCase(): MatchNotificationUseCase
         fun saveNotificationLogUseCase(): SaveNotificationLogUseCase
-        fun syncToSheetsUseCase(): SyncToSheetsUseCase
+        fun syncToFirestoreUseCase(): SyncToFirestoreUseCase
         fun appPreferences(): AppPreferences
         fun workManager(): WorkManager
     }
@@ -97,7 +97,7 @@ class KakaoNotificationListenerService : NotificationListenerService() {
     }
 
     private fun enqueueSyncWorker(workManager: WorkManager) {
-        val request = OneTimeWorkRequestBuilder<SheetsSyncWorker>()
+        val request = OneTimeWorkRequestBuilder<FirestoreSyncWorker>()
             .setConstraints(
                 Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -116,6 +116,6 @@ class KakaoNotificationListenerService : NotificationListenerService() {
 
     companion object {
         const val KAKAO_PACKAGE = "com.kakao.talk"
-        const val SYNC_WORKER_TAG = "sheets_sync_worker"
+        const val SYNC_WORKER_TAG = "firestore_sync_worker"
     }
 }

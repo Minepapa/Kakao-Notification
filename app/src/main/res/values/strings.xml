@@ -27,4 +27,6 @@
     <string name="settings_google_signin">Google 계정 연결</string>
     <string name="settings_google_signout">연결 해제</string>
     <string name="settings_sync_now">지금 동기화</string>
+    <string name="settings_build_date">앱 제작일: %1$s</string>
+    <string name="settings_install_date">내려받기 한 날짜: %1$s</string>
 </resources>

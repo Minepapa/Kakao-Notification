@@ -2,7 +2,9 @@ package com.minepapa.kakaonotification.ui.screen.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -101,6 +103,21 @@ fun SettingsScreen(
                         MaterialTheme.colorScheme.primary,
                 )
             }
+
+            // 앱 제작일(빌드 시각)·내려받기 한 날짜(실제 폰 설치/재설치 시각) — 재빌드
+            // 후 Android Studio Run으로 재설치했을 때 실제로 반영됐는지 두 값을 눈으로
+            // 대조해 확인하기 위한 용도.
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text  = stringResource(R.string.settings_build_date, viewModel.buildDate),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text  = stringResource(R.string.settings_install_date, viewModel.installDate),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

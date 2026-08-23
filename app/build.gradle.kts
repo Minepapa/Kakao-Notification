@@ -1,3 +1,8 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -19,6 +24,20 @@ android {
         versionName     = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 설정 화면에 "앱 제작일"로 표시(SettingsViewModel) — 매 빌드(Gradle 실행) 시각을
+        // 그대로 굽는다. 재빌드할 때마다 값이 바뀌므로, "내려받기 한 날짜"(PackageManager
+        // lastUpdateTime, 런타임 조회)와 나란히 보여주면 방금 만든 빌드가 실제로 폰에
+        // 설치됐는지 오너가 두 값을 눈으로 대조해 확인할 수 있다.
+        val buildTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA).apply {
+            timeZone = TimeZone.getTimeZone("Asia/Seoul")
+        }
+        buildConfigField("String", "BUILD_TIME", "\"${buildTimeFormat.format(Date())}\"")
+    }
+
+    buildFeatures {
+        compose     = true
+        buildConfig = true
     }
 
     ksp {
@@ -46,10 +65,6 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-    }
-
-    buildFeatures {
-        compose = true
     }
 
     packaging {

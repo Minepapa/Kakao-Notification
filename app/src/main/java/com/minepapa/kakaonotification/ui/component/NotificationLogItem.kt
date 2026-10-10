@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.minepapa.kakaonotification.core.util.toFormattedDateTime
 import com.minepapa.kakaonotification.domain.model.NotificationLog
+import com.minepapa.kakaonotification.domain.model.NotificationRoute
 
 private val KeywordBlue = Color(0xFF1976D2)
 
@@ -53,6 +54,10 @@ fun NotificationLogItem(
                     Text(
                         text  = log.sender,
                         style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = if (log.route == NotificationRoute.SPENDING) " · 소비" else " · 투자",
+                        style = MaterialTheme.typography.labelSmall,
                     )
                     Spacer(Modifier.weight(1f))
                     Text(

@@ -15,8 +15,8 @@ domain/          ← 순수 Kotlin. Android 의존 없음.
   usecase/       ← operator fun invoke() 하나씩. VM은 repo 직접 호출 금지.
 
 data/
-  local/db/      ← Room: AppDatabase (v1), FilterRuleDao, NotificationLogDao
-  local/prefs/   ← DataStore: listenerEnabled
+  local/db/      ← Room: AppDatabase (v4), FilterRuleDao, NotificationLogDao; 명시적 Migration
+  local/prefs/   ← DataStore: listenerEnabled, selectedSpendingPackages
   remote/auth/   ← FirebaseAuthProvider (Google Sign-In → Firebase Auth ID 토큰)
   repository/    ← *Impl. Hilt @Binds 연결은 core/di/RepositoryModule.kt
 
@@ -51,7 +51,8 @@ core/
 | 알림 감지/필터링 | `service/KakaoNotificationListenerService.kt` |
 | 매칭 로직 | `domain/usecase/MatchNotificationUseCase.kt` |
 | Firestore 동기화 | `service/FirestoreSyncWorker.kt` → `domain/usecase/SyncToFirestoreUseCase.kt` |
-| 필터 규칙 UI | `ui/screen/rules/FilterRulesViewModel.kt` |
+| 필터 규칙·행선지 UI | `ui/screen/rules/FilterRulesViewModel.kt` → `AddEditRuleScreen.kt` |
+| 소비 앱 선택 | `ui/screen/settings/SettingsViewModel.kt` → `SettingsScreen.kt` → `data/local/preferences/AppPreferences.kt` |
 | DI 연결 | `core/di/RepositoryModule.kt` → `FirebaseModule.kt` |
 | DB 스키마 | `data/local/db/AppDatabase.kt` |
 | Firebase 인증 | `data/remote/auth/FirebaseAuthProvider.kt` |
@@ -85,16 +86,20 @@ ViewModel → UseCase → Repository. ViewModel이 Repository 직접 호출 금�
 ### Hilt EntryPoint (NLS)
 `NotificationListenerService`는 `@AndroidEntryPoint` 불가 → `@EntryPoint` 인터페이스 + `EntryPointAccessors.fromApplication()` lazy 초기화.
 
-### KakaoTalk 알림 추출
+### 알림 추출과 분기
 ```kotlin
-sbn.packageName == "com.kakao.talk"          // 패키지 필터
-EXTRA_TITLE                                   // 발신자
-EXTRA_BIG_TEXT ?: EXTRA_TEXT                  // 메시지 본문
+sbn.packageName == "com.kakao.talk"          // 카카오톡은 규칙 매칭 후 route 적용
+selectedSpendingPackages.contains(sbn.packageName) // 선택한 앱은 규칙 없이 소비로 전송
+EXTRA_TITLE                                   // sender
+EXTRA_BIG_TEXT ?: EXTRA_TEXT                  // body
 ```
+그룹 요약, 선택 앱의 상시·포그라운드 서비스 알림, 제목·본문이 모두 빈 소비 앱 알림은
+무시한다. 같은 알림 key·시각(`notification.when`, 없으면 `sbn.postTime`)·내용으로
+반복 posted된 알림은 한 번만 저장한다.
 
 ### WorkManager 트리거
-알림 매칭 → Room 저장 → `SyncToFirestoreUseCase` 즉시 호출.
-네트워크 실패 시 `FirestoreSyncWorker` 예약 (네트워크 제약 + 지수 백오프).
+알림 수집 → Room 저장 → `FirestoreSyncWorker` 예약 (네트워크 제약 + 지수 백오프).
+Worker가 `SyncToFirestoreUseCase`를 호출해 미동기화 로그를 각 행선지로 보낸다.
 
 ---
 
@@ -116,23 +121,35 @@ EXTRA_BIG_TEXT ?: EXTRA_TEXT                  // 메시지 본문
 | 패키지 루트 | `com.minepapa.kakaonotification` |
 | 카카오톡 패키지 | `com.kakao.talk` |
 | Room DB 이름 | `kakao_notification_db` |
-| Room 버전 | 1 (마이그레이션은 AppDatabase.kt) |
+| Room 버전 | 4 (마이그레이션은 DatabaseModule.kt) |
 | WorkManager 태그 | `firestore_sync_worker` |
-| Firestore 컬렉션 | `kakaoInbox` (banana-portfolio-v2의 `scripts/lib/kakao-inbox.mjs`가 읽음) |
-| DataStore 키 | `LISTENER_ENABLED` |
+| Firestore 컬렉션 | 투자 `kakaoInbox` (banana-portfolio-v2의 `scripts/lib/kakao-inbox.mjs`가 읽음), 소비 `spendingInbox` |
+| DataStore 키 | `LISTENER_ENABLED`, 소비 앱 패키지 집합 |
 | 알림 extras 키 | `EXTRA_TITLE` (발신자), `EXTRA_BIG_TEXT`, `EXTRA_TEXT` |
 
 ### 매칭 알고리즘 (MatchNotificationUseCase)
 - `senderMatch`: `rule.senderName.isBlank()` OR 제목에 발신자 포함 (대소문자 무시)
 - `keywordMatch`: `rule.keywords.isEmpty()` OR 본문에 키워드 하나라도 포함 (대소문자 무시)
 - 두 조건 AND
+- 카카오톡 알림이 양쪽 규칙에 모두 맞으면 `spending` 규칙을 먼저 평가한다. 같은 route 안에서는 기존 목록 순서를 유지한다.
+- 매칭된 규칙의 `route`가 `investing`이면 `kakaoInbox`, `spending`이면 `spendingInbox`로 보낸다. 기존 규칙의 기본값은 `investing`이다.
+- 선택한 앱의 알림은 규칙과 관계없이 `spendingInbox`로 보낸다.
 
 ### Firestore 문서 스키마 (kakaoInbox)
 ```
 { ts: "YYYY-MM-DD HH:mm:ss"(KST), sender, body, createdAt: serverTimestamp() }
 ```
-쓰기 권한은 Firestore 보안규칙에서 본인 Google 계정(이메일)으로만 제한(create 전용,
-read/update/delete는 항상 거부 — Mac 쪽 Admin SDK만 전체 읽기/삭제 가능).
+### Firestore 문서 스키마 (spendingInbox)
+```
+{ ts: "YYYY-MM-DD HH:mm:ss"(KST), source: "kakao"|"app", packageName,
+  appLabel, sender, body, postedAt: epochMillis, createdAt: serverTimestamp() }
+```
+로컬 로그에는 route와 소비 문서의 출처 메타데이터를 저장해 WorkManager 재시도 시에도
+같은 행선지와 값을 유지한다.
+쓰기 권한은 Firestore 보안규칙에서 본인 Google 계정(이메일)으로만 제한한다.
+결정적 문서 ID의 `set()` 재시도가 성공하려면 같은 계정의 기존 문서 갱신도 허용해야 한다.
+기존 create 전용 규칙(update 거부)이 배포돼 있다면 해당 규칙 변경이 필요하다.
+읽기·삭제는 Mac 쪽 Admin SDK만 가능하게 유지한다.
 
 ---
 

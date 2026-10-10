@@ -1,17 +1,23 @@
 package com.minepapa.kakaonotification.ui.screen.settings
 
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.minepapa.kakaonotification.BuildConfig
+import com.minepapa.kakaonotification.data.local.preferences.AppPreferences
 import com.minepapa.kakaonotification.data.remote.auth.FirebaseAuthProvider
 import com.minepapa.kakaonotification.domain.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -21,9 +27,49 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val appPreferences: AppPreferences,
     private val authProvider: FirebaseAuthProvider,
     private val syncToFirestoreUseCase: SyncToFirestoreUseCase,
 ) : ViewModel() {
+
+    val ownPackageName: String = context.packageName
+
+    private val _installedApps = MutableStateFlow<List<SpendingApp>>(emptyList())
+    val installedApps = _installedApps.asStateFlow()
+
+    val selectedSpendingPackages = appPreferences.selectedSpendingPackages.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptySet(),
+    )
+
+    init {
+        loadInstalledApps()
+    }
+
+    private fun loadInstalledApps() {
+        viewModelScope.launch {
+            _installedApps.value = withContext(Dispatchers.IO) {
+                val packageManager = context.packageManager
+                val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                packageManager.queryIntentActivities(launcherIntent, 0)
+                    .map { info ->
+                        SpendingApp(
+                            packageName = info.activityInfo.packageName,
+                            label = info.loadLabel(packageManager).toString(),
+                        )
+                    }
+                    .filterNot { it.packageName == ownPackageName || it.packageName == "com.kakao.talk" }
+                    .distinctBy { it.packageName }
+            }
+        }
+    }
+
+    fun setSpendingAppSelected(packageName: String, selected: Boolean) {
+        viewModelScope.launch {
+            appPreferences.setSelectedSpendingPackage(packageName, selected)
+        }
+    }
 
     // Firebase Auth 로그인 상태는 앱 재개 시마다 재확인(resume에서 호출)
     private val _isSignedIn = MutableStateFlow(authProvider.isSignedIn())

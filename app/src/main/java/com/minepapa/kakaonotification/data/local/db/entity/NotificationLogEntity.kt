@@ -1,8 +1,10 @@
 package com.minepapa.kakaonotification.data.local.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.minepapa.kakaonotification.domain.model.NotificationLog
+import com.minepapa.kakaonotification.domain.model.NotificationRoute
 
 @Entity(tableName = "notification_logs")
 data class NotificationLogEntity(
@@ -12,6 +14,11 @@ data class NotificationLogEntity(
     val matchedKeywords: String,  // 쉼표 구분 저장, 없으면 빈 문자열
     val receivedAt: Long,
     val syncedAt: Long?,
+    @ColumnInfo(defaultValue = "'investing'") val route: String = NotificationRoute.INVESTING,
+    @ColumnInfo(defaultValue = "'kakao'") val source: String = "kakao",
+    @ColumnInfo(defaultValue = "''") val packageName: String = "",
+    @ColumnInfo(defaultValue = "''") val appLabel: String = "",
+    @ColumnInfo(defaultValue = "0") val postedAt: Long = receivedAt,
 ) {
     fun toDomain() = NotificationLog(
         id              = id,
@@ -21,6 +28,11 @@ data class NotificationLogEntity(
                           else matchedKeywords.split(","),
         receivedAt      = receivedAt,
         syncedAt        = syncedAt,
+        route           = route,
+        source          = source,
+        packageName     = packageName,
+        appLabel        = appLabel,
+        postedAt        = postedAt,
     )
 
     companion object {
@@ -31,6 +43,11 @@ data class NotificationLogEntity(
             matchedKeywords = log.matchedKeywords.joinToString(","),
             receivedAt      = log.receivedAt,
             syncedAt        = log.syncedAt,
+            route           = log.route,
+            source          = log.source,
+            packageName     = log.packageName,
+            appLabel        = log.appLabel,
+            postedAt        = log.postedAt,
         )
     }
 }

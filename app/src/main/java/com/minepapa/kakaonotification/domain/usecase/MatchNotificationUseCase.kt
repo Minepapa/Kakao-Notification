@@ -1,6 +1,7 @@
 package com.minepapa.kakaonotification.domain.usecase
 
 import com.minepapa.kakaonotification.domain.model.FilterRule
+import com.minepapa.kakaonotification.domain.model.NotificationRoute
 import com.minepapa.kakaonotification.domain.repository.FilterRuleRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -15,7 +16,8 @@ class MatchNotificationUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(sender: String, body: String): MatchResult? {
         val rules = repo.getAll().first().filter { it.isEnabled }
-        for (rule in rules) {
+        for (rule in rules.filter { it.route == NotificationRoute.SPENDING } +
+            rules.filter { it.route != NotificationRoute.SPENDING }) {
             val senderMatch = rule.senderName.isBlank() ||
                 sender.contains(rule.senderName, ignoreCase = true)
             if (!senderMatch) continue

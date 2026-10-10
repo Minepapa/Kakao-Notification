@@ -1,6 +1,7 @@
 package com.minepapa.kakaonotification.domain.usecase
 
 import com.minepapa.kakaonotification.domain.model.FilterRule
+import com.minepapa.kakaonotification.domain.model.NotificationRoute
 import com.minepapa.kakaonotification.domain.repository.FilterRuleRepository
 import io.mockk.every
 import io.mockk.mockk
@@ -85,5 +86,44 @@ class MatchNotificationUseCaseTest {
         val result = useCase("alice", "system alert and error triggered")
 
         assertEquals(listOf("ALERT", "ERROR"), result?.matchedKeywords)
+    }
+
+    @Test
+    fun `소비 규칙에 매칭되면 소비 행선지를 반환`() = runTest {
+        val rule = FilterRule(
+            id = 2,
+            senderName = "가상 카드 알림",
+            keywords = listOf("가상 결제"),
+            route = NotificationRoute.SPENDING,
+        )
+        every { repo.getAll() } returns flowOf(listOf(rule))
+
+        val result = useCase("가상 카드 알림", "가상 결제 완료")
+
+        assertEquals(NotificationRoute.SPENDING, result?.rule?.route)
+    }
+
+    @Test
+    fun `투자 규칙이 목록에서 먼저 와도 소비 규칙을 우선한다`() = runTest {
+        val investing = FilterRule(id = 1, senderName = "은행", keywords = listOf("승인"))
+        val spending = FilterRule(
+            id = 2, senderName = "은행", keywords = listOf("승인"), route = NotificationRoute.SPENDING,
+        )
+        every { repo.getAll() } returns flowOf(listOf(investing, spending))
+
+        assertEquals(spending, useCase("은행", "승인 완료")?.rule)
+    }
+
+    @Test
+    fun `같은 소비 route에서는 기존 목록 순서를 유지한다`() = runTest {
+        val first = FilterRule(
+            id = 1, senderName = "은행", keywords = listOf("승인"), route = NotificationRoute.SPENDING,
+        )
+        val second = FilterRule(
+            id = 2, senderName = "은행", keywords = listOf("승인"), route = NotificationRoute.SPENDING,
+        )
+        every { repo.getAll() } returns flowOf(listOf(first, second))
+
+        assertEquals(first, useCase("은행", "승인 완료")?.rule)
     }
 }

@@ -6,4 +6,5 @@ data class FilterRule(
     val keywords: List<String> = emptyList(),
     val isEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
+    val route: String = NotificationRoute.INVESTING,
 )

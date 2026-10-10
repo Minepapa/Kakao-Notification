@@ -1,8 +1,10 @@
 package com.minepapa.kakaonotification.data.local.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.minepapa.kakaonotification.domain.model.FilterRule
+import com.minepapa.kakaonotification.domain.model.NotificationRoute
 
 @Entity(tableName = "filter_rules")
 data class FilterRuleEntity(
@@ -11,6 +13,7 @@ data class FilterRuleEntity(
     val keywords: String,
     val isEnabled: Boolean,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "'investing'") val route: String = NotificationRoute.INVESTING,
 ) {
     fun toDomain() = FilterRule(
         id = id,
@@ -18,6 +21,7 @@ data class FilterRuleEntity(
         keywords = if (keywords.isBlank()) emptyList() else keywords.split(",").map { it.trim() },
         isEnabled = isEnabled,
         createdAt = createdAt,
+        route = route,
     )
 
     companion object {
@@ -27,6 +31,7 @@ data class FilterRuleEntity(
             keywords = rule.keywords.joinToString(","),
             isEnabled = rule.isEnabled,
             createdAt = rule.createdAt,
+            route = rule.route,
         )
     }
 }

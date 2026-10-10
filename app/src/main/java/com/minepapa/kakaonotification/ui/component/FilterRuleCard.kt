@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.minepapa.kakaonotification.domain.model.FilterRule
+import com.minepapa.kakaonotification.domain.model.NotificationRoute
 
 @Composable
 fun FilterRuleCard(
@@ -38,6 +39,10 @@ fun FilterRuleCard(
                 Text(
                     text  = rule.senderName.ifBlank { "전체 발신자" },
                     style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = if (rule.route == NotificationRoute.SPENDING) "소비" else "투자",
+                    style = MaterialTheme.typography.labelSmall,
                 )
                 if (rule.keywords.isNotEmpty()) {
                     Text(

@@ -1,14 +1,19 @@
 package com.minepapa.kakaonotification.ui.screen.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,6 +25,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -39,12 +45,17 @@ fun SettingsScreen(
 ) {
     val isSignedIn    by viewModel.isSignedIn.collectAsStateWithLifecycle()
     val syncStatus    by viewModel.syncStatus.collectAsStateWithLifecycle()
+    val installedApps  by viewModel.installedApps.collectAsStateWithLifecycle()
+    val selectedSpendingPackages by viewModel.selectedSpendingPackages.collectAsStateWithLifecycle()
+    val spendingApps = buildSpendingAppList(installedApps, selectedSpendingPackages, viewModel.ownPackageName)
 
     // Sign-In 화면에서 돌아올 때 상태 재확인
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshSignInState()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshSignInState()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -62,62 +73,108 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .padding(padding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Google 계정 연결(Firebase Auth — Firestore kakaoInbox 쓰기 권한에 필요)
-            if (isSignedIn) {
-                OutlinedButton(
-                    onClick  = viewModel::signOut,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.settings_google_signout))
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Google 계정 연결(Firebase Auth — Firestore kakaoInbox 쓰기 권한에 필요)
+                    if (isSignedIn) {
+                        OutlinedButton(
+                            onClick  = viewModel::signOut,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.settings_google_signout))
+                        }
+                    } else {
+                        Button(
+                            onClick  = onGoogleSignIn,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.settings_google_signin))
+                        }
+                    }
+
+                    Button(
+                        onClick  = viewModel::syncNow,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled  = isSignedIn,
+                    ) {
+                        Text(stringResource(R.string.settings_sync_now))
+                    }
+
+                    if (syncStatus != null) {
+                        Text(
+                            text  = syncStatus!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (syncStatus!!.startsWith("오류"))
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    Text(
+                        text = "소비 알림 수집 앱",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = "선택한 앱의 알림은 제목과 본문을 소비 수집함으로 보냅니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-            } else {
-                Button(
-                    onClick  = onGoogleSignIn,
-                    modifier = Modifier.fillMaxWidth(),
+            }
+            items(spendingApps, key = { it.packageName }) { app ->
+                val selected = app.packageName in selectedSpendingPackages
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.setSpendingAppSelected(app.packageName, !selected)
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.settings_google_signin))
+                    Checkbox(checked = selected, onCheckedChange = null)
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(app.label, style = MaterialTheme.typography.bodyMedium)
+                        if (!app.isInstalled) {
+                            Text(
+                                "설치되지 않음",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            app.packageName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 
-            Button(
-                onClick  = viewModel::syncNow,
-                modifier = Modifier.fillMaxWidth(),
-                enabled  = isSignedIn,
-            ) {
-                Text(stringResource(R.string.settings_sync_now))
+            item {
+                Column {
+                    // 앱 제작일(빌드 시각)·내려받기 한 날짜(실제 폰 설치/재설치 시각) — 재빌드
+                    // 후 Android Studio Run으로 재설치했을 때 실제로 반영됐는지 두 값을 눈으로
+                    // 대조해 확인하기 위한 용도.
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text  = stringResource(R.string.settings_build_date, viewModel.buildDate),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text  = stringResource(R.string.settings_install_date, viewModel.installDate),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-
-            if (syncStatus != null) {
-                Text(
-                    text  = syncStatus!!,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (syncStatus!!.startsWith("오류"))
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            // 앱 제작일(빌드 시각)·내려받기 한 날짜(실제 폰 설치/재설치 시각) — 재빌드
-            // 후 Android Studio Run으로 재설치했을 때 실제로 반영됐는지 두 값을 눈으로
-            // 대조해 확인하기 위한 용도.
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text  = stringResource(R.string.settings_build_date, viewModel.buildDate),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text  = stringResource(R.string.settings_install_date, viewModel.installDate),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

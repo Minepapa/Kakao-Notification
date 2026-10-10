@@ -26,7 +26,8 @@ service/
 
 ui/              ← Compose MVVM
   theme/         ← Material3 Color/Type/Theme
-  screen/        ← dashboard, rules, log, settings
+  screen/        ← dashboard(적용 중인 규칙 요약), rules(삭제 확인), log(삭제 확인),
+                   settings(소비 앱 선택 화면)
   component/     ← 공유 Composable (stateless)
 
 core/
@@ -51,8 +52,10 @@ core/
 | 알림 감지/필터링 | `service/KakaoNotificationListenerService.kt` |
 | 매칭 로직 | `domain/usecase/MatchNotificationUseCase.kt` |
 | Firestore 동기화 | `service/FirestoreSyncWorker.kt` → `domain/usecase/SyncToFirestoreUseCase.kt` |
-| 필터 규칙·행선지 UI | `ui/screen/rules/FilterRulesViewModel.kt` → `AddEditRuleScreen.kt` |
-| 소비 앱 선택 | `ui/screen/settings/SettingsViewModel.kt` → `SettingsScreen.kt` → `data/local/preferences/AppPreferences.kt` |
+| 필터 규칙·행선지 UI | `ui/screen/rules/FilterRulesViewModel.kt` → `FilterRulesScreen.kt`(삭제 확인) → `AddEditRuleScreen.kt` |
+| 홈 규칙 요약 | `ui/screen/dashboard/DashboardViewModel.kt` → `DashboardScreen.kt` → `domain/usecase/BuildRuleSummary.kt` |
+| 소비 앱 선택 | `ui/screen/settings/SettingsViewModel.kt` → `SettingsScreen.kt`(선택 개수) → `SpendingAppSelectionScreen.kt`(Lazy 목록) → `data/local/preferences/AppPreferences.kt` |
+| 로그 삭제 확인 | `ui/screen/log/NotificationLogViewModel.kt` → `NotificationLogScreen.kt` |
 | DI 연결 | `core/di/RepositoryModule.kt` → `FirebaseModule.kt` |
 | DB 스키마 | `data/local/db/AppDatabase.kt` |
 | Firebase 인증 | `data/remote/auth/FirebaseAuthProvider.kt` |

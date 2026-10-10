@@ -8,12 +8,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +36,21 @@ fun FilterRulesScreen(
     viewModel: FilterRulesViewModel = hiltViewModel(),
 ) {
     val rules by viewModel.rules.collectAsStateWithLifecycle()
+    val rulePendingDeletion by viewModel.rulePendingDeletion.collectAsStateWithLifecycle()
+
+    rulePendingDeletion?.let { rule ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDeleteRule,
+            title = { Text("규칙 삭제") },
+            text = { Text("'${rule.senderName.ifBlank { "전체 발신자" }}' 규칙을 삭제할까요?") },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDeleteRule) { Text("삭제") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelDeleteRule) { Text("취소") }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -66,7 +83,7 @@ fun FilterRulesScreen(
                 FilterRuleCard(
                     rule     = rule,
                     onToggle = { viewModel.toggleRule(rule.id, it) },
-                    onDelete = { viewModel.deleteRule(rule.id) },
+                    onDelete = { viewModel.requestDeleteRule(rule) },
                     onEdit   = { onEditRule(rule.id) },
                 )
             }

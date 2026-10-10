@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.minepapa.kakaonotification.core.util.NotificationPermissionHelper
 import com.minepapa.kakaonotification.data.remote.auth.FirebaseAuthProvider
 import com.minepapa.kakaonotification.domain.usecase.GetFilterRulesUseCase
+import com.minepapa.kakaonotification.domain.usecase.GetSelectedSpendingAppsUseCase
+import com.minepapa.kakaonotification.domain.usecase.buildRuleSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,15 +21,19 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     getFilterRulesUseCase: GetFilterRulesUseCase,
+    getSelectedSpendingAppsUseCase: GetSelectedSpendingAppsUseCase,
     private val authProvider: FirebaseAuthProvider,
 ) : ViewModel() {
 
     val hasPermission: Boolean
         get() = NotificationPermissionHelper.isGranted(context)
 
-    val ruleCount = getFilterRulesUseCase()
-        .map { it.size }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    val ruleSummary = getFilterRulesUseCase()
+        .map { buildRuleSummary(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), buildRuleSummary(emptyList()))
+
+    val selectedSpendingApps = getSelectedSpendingAppsUseCase()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _isSignedIn = MutableStateFlow(authProvider.isSignedIn())
     val isSignedIn = _isSignedIn.asStateFlow()

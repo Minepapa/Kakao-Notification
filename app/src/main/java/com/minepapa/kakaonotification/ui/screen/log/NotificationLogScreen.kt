@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,8 +37,23 @@ fun NotificationLogScreen(
     val logs          by viewModel.logs.collectAsStateWithLifecycle()
     val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
     val selectedIds   by viewModel.selectedIds.collectAsStateWithLifecycle()
+    val deletionPendingIds by viewModel.deletionPendingIds.collectAsStateWithLifecycle()
 
-    BackHandler(enabled = selectionMode) { viewModel.exitSelectionMode() }
+    if (deletionPendingIds.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDeleteSelected,
+            title = { Text("로그 삭제") },
+            text = { Text("선택한 로그 ${deletionPendingIds.size}개를 삭제할까요?") },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDeleteSelected) { Text("삭제") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelDeleteSelected) { Text("취소") }
+            },
+        )
+    }
+
+    BackHandler(enabled = selectionMode && deletionPendingIds.isEmpty()) { viewModel.exitSelectionMode() }
 
     Scaffold(
         topBar = {
@@ -60,7 +76,7 @@ fun NotificationLogScreen(
                             Text(if (allSelected) "전체 해제" else "전체 선택")
                         }
                         IconButton(
-                            onClick = viewModel::deleteSelected,
+                            onClick = viewModel::requestDeleteSelected,
                             enabled = selectedIds.isNotEmpty(),
                         ) {
                             Icon(

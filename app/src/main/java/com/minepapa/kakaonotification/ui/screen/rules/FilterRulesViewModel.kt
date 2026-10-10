@@ -8,7 +8,9 @@ import com.minepapa.kakaonotification.domain.usecase.AddFilterRuleUseCase
 import com.minepapa.kakaonotification.domain.usecase.DeleteFilterRuleUseCase
 import com.minepapa.kakaonotification.domain.usecase.GetFilterRulesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,14 +26,27 @@ class FilterRulesViewModel @Inject constructor(
     val rules = getFilterRulesUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val _rulePendingDeletion = MutableStateFlow<FilterRule?>(null)
+    val rulePendingDeletion = _rulePendingDeletion.asStateFlow()
+
     fun addRule(rule: FilterRule) {
         viewModelScope.launch { addFilterRuleUseCase(rule) }
     }
 
     suspend fun getRuleById(id: Long): FilterRule? = filterRuleRepository.getById(id)
 
-    fun deleteRule(id: Long) {
-        viewModelScope.launch { deleteFilterRuleUseCase(id) }
+    fun requestDeleteRule(rule: FilterRule) {
+        _rulePendingDeletion.value = rule
+    }
+
+    fun cancelDeleteRule() {
+        _rulePendingDeletion.value = null
+    }
+
+    fun confirmDeleteRule() {
+        val rule = _rulePendingDeletion.value ?: return
+        _rulePendingDeletion.value = null
+        viewModelScope.launch { deleteFilterRuleUseCase(rule.id) }
     }
 
     fun toggleRule(id: Long, enabled: Boolean) {

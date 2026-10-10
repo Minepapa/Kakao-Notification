@@ -6,6 +6,7 @@ sealed class Screen(val route: String) {
     object AddRule   : Screen("rules/add")
     object Log       : Screen("log")
     object Settings  : Screen("settings")
+    object SpendingApps : Screen("settings/spending-apps")
 
     data class EditRule(val id: Long) : Screen("rules/$id")
 }

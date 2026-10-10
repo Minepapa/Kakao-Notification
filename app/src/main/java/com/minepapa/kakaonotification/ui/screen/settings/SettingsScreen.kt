@@ -3,20 +3,19 @@ package com.minepapa.kakaonotification.ui.screen.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -25,7 +24,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,14 +38,13 @@ import com.minepapa.kakaonotification.R
 @Composable
 fun SettingsScreen(
     onGoogleSignIn: () -> Unit,
+    onSelectSpendingApps: () -> Unit,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isSignedIn    by viewModel.isSignedIn.collectAsStateWithLifecycle()
     val syncStatus    by viewModel.syncStatus.collectAsStateWithLifecycle()
-    val installedApps  by viewModel.installedApps.collectAsStateWithLifecycle()
     val selectedSpendingPackages by viewModel.selectedSpendingPackages.collectAsStateWithLifecycle()
-    val spendingApps = buildSpendingAppList(installedApps, selectedSpendingPackages, viewModel.ownPackageName)
 
     // Sign-In 화면에서 돌아올 때 상태 재확인
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -117,46 +114,16 @@ fun SettingsScreen(
                         )
                     }
 
-                    Text(
-                        text = "소비 알림 수집 앱",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = "선택한 앱의 알림은 제목과 본문을 소비 수집함으로 보냅니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            items(spendingApps, key = { it.packageName }) { app ->
-                val selected = app.packageName in selectedSpendingPackages
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            viewModel.setSpendingAppSelected(app.packageName, !selected)
+                    ListItem(
+                        headlineContent = { Text("소비 알림 수집 앱") },
+                        supportingContent = { Text("${selectedSpendingPackages.size}개 선택됨") },
+                        trailingContent = {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                         },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(checked = selected, onCheckedChange = null)
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(app.label, style = MaterialTheme.typography.bodyMedium)
-                        if (!app.isInstalled) {
-                            Text(
-                                "설치되지 않음",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Text(
-                            app.packageName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                        modifier = Modifier.clickable(onClick = onSelectSpendingApps),
+                    )
                 }
             }
-
             item {
                 Column {
                     // 앱 제작일(빌드 시각)·내려받기 한 날짜(실제 폰 설치/재설치 시각) — 재빌드

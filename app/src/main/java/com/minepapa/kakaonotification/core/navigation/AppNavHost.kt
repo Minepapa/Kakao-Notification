@@ -2,6 +2,7 @@ package com.minepapa.kakaonotification.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -10,6 +11,8 @@ import com.minepapa.kakaonotification.ui.screen.log.NotificationLogScreen
 import com.minepapa.kakaonotification.ui.screen.rules.AddEditRuleScreen
 import com.minepapa.kakaonotification.ui.screen.rules.FilterRulesScreen
 import com.minepapa.kakaonotification.ui.screen.settings.SettingsScreen
+import com.minepapa.kakaonotification.ui.screen.settings.SettingsViewModel
+import com.minepapa.kakaonotification.ui.screen.settings.SpendingAppSelectionScreen
 
 @Composable
 fun AppNavHost(
@@ -54,7 +57,15 @@ fun AppNavHost(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onGoogleSignIn = onGoogleSignIn,
+                onSelectSpendingApps = { navController.navigate(Screen.SpendingApps.route) },
                 onBack         = { navController.popBackStack() },
+            )
+        }
+        composable(Screen.SpendingApps.route) {
+            val settingsEntry = navController.getBackStackEntry(Screen.Settings.route)
+            SpendingAppSelectionScreen(
+                onBack = { navController.popBackStack() },
+                viewModel = hiltViewModel<SettingsViewModel>(settingsEntry),
             )
         }
     }

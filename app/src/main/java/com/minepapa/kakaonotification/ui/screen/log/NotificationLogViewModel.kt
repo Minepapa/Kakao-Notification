@@ -27,12 +27,16 @@ class NotificationLogViewModel @Inject constructor(
     private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedIds = _selectedIds.asStateFlow()
 
+    private val _deletionPendingIds = MutableStateFlow<Set<Long>>(emptySet())
+    val deletionPendingIds = _deletionPendingIds.asStateFlow()
+
     fun enterSelectionMode() {
         _selectionMode.value = true
         _selectedIds.value = emptySet()
     }
 
     fun exitSelectionMode() {
+        cancelDeleteSelected()
         _selectionMode.value = false
         _selectedIds.value = emptySet()
     }
@@ -48,9 +52,18 @@ class NotificationLogViewModel @Inject constructor(
         _selectedIds.value = if (_selectedIds.value == allIds) emptySet() else allIds
     }
 
-    fun deleteSelected() {
-        val ids = _selectedIds.value.toList()
+    fun requestDeleteSelected() {
+        _deletionPendingIds.value = _selectedIds.value
+    }
+
+    fun cancelDeleteSelected() {
+        _deletionPendingIds.value = emptySet()
+    }
+
+    fun confirmDeleteSelected() {
+        val ids = _deletionPendingIds.value.toList()
         if (ids.isEmpty()) return
+        cancelDeleteSelected()
         viewModelScope.launch {
             deleteLogsUseCase(ids)
             exitSelectionMode()

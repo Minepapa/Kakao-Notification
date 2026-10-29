@@ -79,7 +79,8 @@ class FirestoreRelayRepositoryImplTest {
         assertEquals(investingLog.sender, uploaded["sender"])
         assertEquals(investingLog.body, uploaded["body"])
         assertTrue(uploaded["createdAt"] is FieldValue)
-        assertEquals(setOf("ts", "sender", "body", "createdAt"), uploaded.keys)
+        assertEquals(investingLog.postedAt, uploaded["postedAt"])
+        assertEquals(setOf("ts", "sender", "body", "postedAt", "createdAt"), uploaded.keys)
         verify(exactly = 1) { collection.document(documentId(investingLog)) }
         verify(exactly = 1) { document.set(any()) }
         verify(exactly = 0) { collection.add(any()) }

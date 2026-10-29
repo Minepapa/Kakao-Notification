@@ -76,4 +76,49 @@ class NotificationCapturePolicyTest {
         policy.forget("key-1", 100L, "제목", listOf("본문"))
         assertTrue(policy.accept("key-1", 100L, "제목", listOf("본문")))
     }
+
+    private fun fill(round: Int) = NotificationCapturePolicy.Message(
+        "[삼성증권]<주식체결안내>\nTIGER 미국배당다우존스\n매도1주 14,825원\n체결(${round}차)",
+        1_793_076_027_320L + round * 605L,
+    )
+
+    // 2026-10-27 13:40 실사고: 몰린 갱신 하나에 12·6·13·4차가 함께 실렸고 BigText에는 4차만 있었다.
+    @Test
+    fun `몰린 갱신에 실린 새 메시지는 각각 한 번씩 수집한다`() {
+        val earlier = listOf(fill(11), fill(12))
+        earlier.forEach { assertTrue(policy.acceptMessage("room", "삼성증권", it)) }
+
+        val crowded = earlier + listOf(fill(13), fill(14), fill(15))
+        val accepted = policy.recentMessages(crowded).filter { policy.acceptMessage("room", "삼성증권", it) }
+        assertEquals(listOf(fill(13), fill(14), fill(15)), accepted)
+        assertTrue(policy.recentMessages(crowded).none { policy.acceptMessage("room", "삼성증권", it) })
+    }
+
+    @Test
+    fun `가장 새 메시지보다 오래된 이력과 빈 메시지는 다시 보내지 않는다`() {
+        val latest = NotificationCapturePolicy.Message("새 체결", 1_000_000L)
+        val old = NotificationCapturePolicy.Message("옛 체결", latest.timeMs - NotificationCapturePolicy.MESSAGE_WINDOW_MS - 1)
+        val blank = NotificationCapturePolicy.Message(" ", latest.timeMs)
+        assertEquals(listOf(latest), policy.recentMessages(listOf(old, blank, latest)))
+    }
+
+    @Test
+    fun `시각 없는 메시지가 섞이면 예전 경로, 같은 ms의 다른 메시지는 따로 수집`() {
+        assertFalse(policy.usesMessages(listOf(fill(1), NotificationCapturePolicy.Message("시각 없음", 0L))))
+        assertFalse(policy.usesMessages(emptyList()))
+        assertTrue(policy.usesMessages(listOf(fill(1))))
+        val a = NotificationCapturePolicy.Message("체결 A", 5_000L)
+        val b = NotificationCapturePolicy.Message("체결 B", 5_000L)
+        assertTrue(policy.acceptMessage("room", "삼성증권", a))
+        assertTrue(policy.acceptMessage("room", "삼성증권", b))
+        assertFalse(policy.acceptMessage("room", "삼성증권", a))
+    }
+
+    @Test
+    fun `저장되지 않은 메시지는 다음 갱신에서 다시 시도할 수 있다`() {
+        val message = fill(6)
+        assertTrue(policy.acceptMessage("room", "삼성증권", message))
+        policy.forgetMessage("room", "삼성증권", message)
+        assertTrue(policy.acceptMessage("room", "삼성증권", message))
+    }
 }

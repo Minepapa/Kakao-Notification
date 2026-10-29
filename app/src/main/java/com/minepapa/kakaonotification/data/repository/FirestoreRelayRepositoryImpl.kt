@@ -47,6 +47,8 @@ class FirestoreRelayRepositoryImpl @Inject constructor(
                     "ts" to dateFormat.format(Date(log.receivedAt)),
                     "sender" to log.sender,
                     "body" to log.body,
+                    // 메시지 시각(문서 ID 재료). 맥에서 알림 시각과 메시지 시각이 갈리는지 관측한다(2026-10-29).
+                    "postedAt" to log.postedAt,
                     "createdAt" to FieldValue.serverTimestamp(),
                 )
             }
